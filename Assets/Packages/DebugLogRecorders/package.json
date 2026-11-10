@@ -1,6 +1,6 @@
 {
-    "name"       : "com.xjine.debug_log_recorders",
-    "displayName": "Debug Log Recorder", 
+    "name"       : "com.xjine.debuglog_recorders",
+    "displayName": "DebugLog Recorder", 
     "version"    : "1.0.0",
     "unity"      : "2022.3",
     "description": "Replaces the default Debug.unityLogger.logHandler and records log history per class.",
