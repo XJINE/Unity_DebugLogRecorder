@@ -51,6 +51,10 @@ public class DebugLogRecorder : ILogHandler
         public string    Message;
     }
 
+    // NOTE:
+    // C# does not allow an indexer (this[...]) on a static class or as a static member.
+    // So an API like DebugLogRecorder[key] is not possible.
+
     private static readonly Dictionary<string, Queue<LogEntry>> HistoryByClass = new();
 
     private static ILogHandler _defaultLogHandler;
@@ -181,10 +185,19 @@ public class DebugLogRecorder : ILogHandler
         return "UnknownClass";
     }
 
+    // NOTE:
+    // A string-based method is required because some types are not accessible
+    // and some logs are recorded under compiler-generated type names.
+
     public static IReadOnlyCollection<LogEntry> GetHistory<T>() => GetHistory(typeof(T).Name);
 
     public static IReadOnlyCollection<LogEntry> GetHistory(string className)
     {
+        // CAUTION:
+        // Returning an empty array is the correct behavior.
+        // A class may have no logs yet, but it may log later.
+        // A debug feature should throw as few exceptions as possible.
+
         lock (HistoryByClass)
         {
             return HistoryByClass.TryGetValue(className, out var queue)
