@@ -206,6 +206,30 @@ public class DebugLogRecorder : ILogHandler
         }
     }
 
+    public static IReadOnlyCollection<string> GetClassNames()
+    {
+        lock (HistoryByClass)
+        {
+            return HistoryByClass.Count > 0 ? new List<string>(HistoryByClass.Keys)
+                                            : Array.Empty<string>();
+        }
+    }
+
+    public static IReadOnlyDictionary<string, IReadOnlyCollection<LogEntry>> GetAllHistory()
+    {
+        lock (HistoryByClass)
+        {
+            var snapshot = new Dictionary<string, IReadOnlyCollection<LogEntry>>(HistoryByClass.Count);
+
+            foreach (var (className, queue) in HistoryByClass)
+            {
+                snapshot[className] = queue.ToArray();
+            }
+
+            return snapshot;
+        }
+    }
+
     [HideInCallstack]
     public static void LogWithoutRecording(string message, UnityEngine.Object context = null, LogType logType = LogType.Log)
     {
