@@ -14,6 +14,9 @@ public class DebugLogRecorder : ILogHandler
     // GetInstanceID() is obsolete since Unity 6.4 and a compile error since 6.5.
     // GetEntityId() is available from Unity 6.3 (6000.3).
 
+    // CAUTION:
+    // Some string-based APIs are required because classes may be generated dynamically.
+
     private const int DefaultMaxHistoryPerClass = 20;
 
     private static int _maxHistoryPerClass = DefaultMaxHistoryPerClass;
@@ -127,11 +130,7 @@ public class DebugLogRecorder : ILogHandler
 
         lock (HistoryByClass)
         {
-            if (!HistoryByClass.TryGetValue(className, out var queue))
-            {
-                queue = new Queue<LogEntry>(_maxHistoryPerClass);
-                HistoryByClass[className] = queue;
-            }
+            var queue = GetOrCreateQueue(className);
 
             if (queue.Count >= _maxHistoryPerClass)
             {
@@ -147,6 +146,20 @@ public class DebugLogRecorder : ILogHandler
                 Message      = message
             });
         }
+    }
+
+    private static Queue<LogEntry> GetOrCreateQueue(string className)
+    {
+        // CAUTION:
+        // The caller must hold the lock on HistoryByClass.
+
+        if (!HistoryByClass.TryGetValue(className, out var queue))
+        {
+            queue = new Queue<LogEntry>(_maxHistoryPerClass);
+            HistoryByClass[className] = queue;
+        }
+
+        return queue;
     }
 
     private static string FindCallerClassName()
@@ -185,9 +198,25 @@ public class DebugLogRecorder : ILogHandler
         return "UnknownClass";
     }
 
-    // NOTE:
-    // A string-based method is required because some types are not accessible
-    // and some logs are recorded under compiler-generated type names.
+    public static void Register<T>() => Register(typeof(T).Name);
+
+    public static void Register(string className)
+    {
+        lock (HistoryByClass)
+        {
+            GetOrCreateQueue(className);
+        }
+    }
+
+    public static bool Unregister<T>() => Unregister(typeof(T).Name);
+
+    public static bool Unregister(string className)
+    {
+        lock (HistoryByClass)
+        {
+            return HistoryByClass.Remove(className);
+        }
+    }
 
     public static IReadOnlyCollection<LogEntry> GetHistory<T>() => GetHistory(typeof(T).Name);
 
